@@ -11,6 +11,8 @@ import imutils
 # Constants
 # The minimum eye aspect ratio for an eye to be considered closed
 EAR_THRESH = 0.3
+LEFT_THRESH = 1.6
+RIGHT_THRESH = 0.3
 # If eyes are closed for at least 48 frames, something is off
 BLINK_THRESH = 48
 # To count the amount of frames an eye has been closed
@@ -27,15 +29,15 @@ def getGazeRatio(eye_points, face_landmarks):
     # Creating a mask to isolate the eye and remove background
     height, width, _ = frame.shape 
     mask = np.zeros((height, width), np.uint8)
-    cv2.polylines(mask, [leftEye], True, 255, 2)
-    cv2.fillPoly(mask, [leftEye], 255)
+    cv2.polylines(mask, [region], True, 255, 2)
+    cv2.fillPoly(mask, [region], 255)
     left_eye = cv2.bitwise_and(gray, gray, mask=mask)
 
     # Isolate a frame for the eyes only
-    min_x = np.min(leftEye[:, 0])
-    max_x = np.max(leftEye[:, 0])
-    min_y = np.min(leftEye[:, 1])
-    max_y = np.max(leftEye[:, 1])
+    min_x = np.min(region[:, 0])
+    max_x = np.max(region[:, 0])
+    min_y = np.min(region[:, 1])
+    max_y = np.max(region[:, 1])
     # eye = frame[min_y: max_y, min_x: max_x]
     gray_eye = left_eye[min_y:max_y, min_x:max_x]
     _, threshold_eye = cv2.threshold(gray_eye, 70, 255, cv2.THRESH_BINARY)
@@ -101,10 +103,10 @@ while True:
         left_gaze_ratio = getGazeRatio(list(range(36,42)), face_landmarks)
         right_gaze_ratio = getGazeRatio(list(range(42,48)), face_landmarks)
         gaze_ratio = (left_gaze_ratio+right_gaze_ratio)/2
-        # cv2.putText(frame, str(gaze_ratio), (50, 400), font, 2, (0, 0, 255), 3)
-        if gaze_ratio <= 0.4:
+        cv2.putText(frame, str(gaze_ratio), (50, 400), font, 2, (0, 0, 255), 3)
+        if gaze_ratio <= 0.40:
             cv2.putText(frame, "RIGHT", (50, 100), font, 2, (0, 0, 255), 3)
-        elif 0.4 < gaze_ratio < 1.8:
+        elif 0.40 < gaze_ratio < 1.8:
             cv2.putText(frame, "CENTER", (50, 100), font, 2, (0, 0, 255), 3)
         else:
             cv2.putText(frame, "LEFT", (50, 100), font, 2, (0, 0, 255), 3)
@@ -117,7 +119,7 @@ while True:
         # 
 
         # Count how many frames a person's eyes have been closed for
-        if EAR < EAR_THRESH:
+        if EAR < EAR_THRESH or gaze_ratio < RIGHT_THRESH or gaze_ratio > LEFT_THRESH:
             COUNTER += 1
         
             if COUNTER >= BLINK_THRESH:
