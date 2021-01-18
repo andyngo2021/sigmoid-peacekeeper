@@ -1,22 +1,35 @@
 import cv2
 import dlib
-# 
-from scipy.spatial import distance as dist
-# from imutils.video import VideoStream
+from functions import getEyeAspectRatio, getDist
 from imutils import face_utils
-# from threading import Thread
 import numpy as np 
 import imutils
-import math
 
-# Constants
+
+# CONSTANTS
+CONSTANTS = []
+# Constants get read in from constants.txt
+# Is there a better way to do this? Probably but idk man my brain kinda smol
+with open("constants.txt") as fin:
+    if fin.readline().strip() == "True":
+        for line in fin.readlines():
+            line = line.strip().split()
+            CONSTANTS.append(float(line[0]))
+    else:
+        CONSTANTS = [0.3]
+
+
 # The minimum eye aspect ratio for an eye to be considered closed
-EAR_THRESH = 0.3
+EAR_THRESH = CONSTANTS[0]
+# Gaze Ratio for an eye to be looking very far left
 LEFT_THRESH = 1.6
+# Gaze Ratio for an eye to be looking very far right
 RIGHT_THRESH = 0.3
+# Distance in pixels between eye and face edge
 SIDE_THRESH = 20
 # If eyes are closed for at least 48 frames, something is off
 BLINK_THRESH = 48
+
 # To count the amount of frames an eye has been closed
 COUNTER = 0
 font = cv2.FONT_HERSHEY_SIMPLEX
@@ -60,21 +73,13 @@ def getGazeRatio(eye_points, face_landmarks):
         gaze_ratio = left_side_white/right_side_white
     return gaze_ratio
 
-# eye aspect ratio becomes 0 when eyes are closed
-def getEyeAspectRatio(eye):
-    A = dist.euclidean(eye[1], eye[5])
-    B = dist.euclidean(eye[2], eye[4])
-    C = dist.euclidean(eye[0], eye[3])
-    EAR = (A+B)/(2*C)
-    return EAR
 
 
-# Get distance between points a (x1, y1) and b (x2, y2)
-def getDist(a, b):
-    return math.sqrt((b[0]-a[0])**2 + (b[1]-a[1])**2)
+
+def displayWarning():
+    cv2.putText(frame, "PAY ATTENTION!", (50, 50), font, 2, (0, 0, 255), 2)
 
 cap = cv2.VideoCapture(0)
-
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
 
@@ -85,7 +90,7 @@ while True:
     faces = detector(gray)
 
     if len(faces) == 0:
-        cv2.putText(frame, "PAY ATTENTION!", (10, 30), font, 0.7, (0, 0, 255), 2)
+        displayWarning()
 
     for face in faces:
         face_landmarks = predictor(gray, face)
@@ -115,9 +120,9 @@ while True:
         rightDist = getDist(rightFaceEdge, rightEyeEdge)
 
         if leftDist < SIDE_THRESH or rightDist < SIDE_THRESH:
-            cv2.putText(frame, "PAY ATTENTION!", (10, 30), font, 0.7, (0, 0, 255), 2)
-        cv2.putText(frame, str(round(leftDist, 2)), (50, 400), font, 2, (0, 255, 0), 3)
-        cv2.putText(frame, str(round(rightDist, 2)), (500, 400), font, 2, (0, 0, 255), 3)
+            displayWarning()
+        # cv2.putText(frame, str(round(leftDist, 2)), (50, 400), font, 2, (0, 255, 0), 3)
+        # cv2.putText(frame, str(round(rightDist, 2)), (500, 400), font, 2, (0, 0, 255), 3)
 
 
         # Gaze detection
@@ -126,11 +131,11 @@ while True:
         gaze_ratio = (left_gaze_ratio+right_gaze_ratio)/2
         # cv2.putText(frame, str(gaze_ratio), (50, 400), font, 2, (0, 0, 255), 3)
         if gaze_ratio <= 0.55:
-            cv2.putText(frame, "RIGHT", (50, 100), font, 2, (0, 0, 255), 3)
+            cv2.putText(frame, "RIGHT", (200, 400), font, 2, (0, 0, 255), 3)
         elif 0.55 < gaze_ratio < 1.8:
-            cv2.putText(frame, "CENTER", (50, 100), font, 2, (0, 0, 255), 3)
+            cv2.putText(frame, "CENTER", (200, 400), font, 2, (0, 0, 255), 3)
         else:
-            cv2.putText(frame, "LEFT", (50, 100), font, 2, (0, 0, 255), 3)
+            cv2.putText(frame, "LEFT", (200, 400), font, 2, (0, 0, 255), 3)
 
         # Outline the eyes
         # leftEyeHull = cv2.convexHull(leftEye)
@@ -144,7 +149,7 @@ while True:
             COUNTER += 1
         
             if COUNTER >= BLINK_THRESH:
-                cv2.putText(frame, "PAY ATTENTION!", (10, 30), font, 0.7, (0, 0, 255), 2)
+                displayWarning()
         else:
             COUNTER = 0
         
