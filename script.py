@@ -7,12 +7,14 @@ from imutils import face_utils
 # from threading import Thread
 import numpy as np 
 import imutils
+import math
 
 # Constants
 # The minimum eye aspect ratio for an eye to be considered closed
 EAR_THRESH = 0.3
 LEFT_THRESH = 1.6
 RIGHT_THRESH = 0.3
+SIDE_THRESH = 20
 # If eyes are closed for at least 48 frames, something is off
 BLINK_THRESH = 48
 # To count the amount of frames an eye has been closed
@@ -67,6 +69,9 @@ def getEyeAspectRatio(eye):
     return EAR
 
 
+# Get distance between points a (x1, y1) and b (x2, y2)
+def getDist(a, b):
+    return math.sqrt((b[0]-a[0])**2 + (b[1]-a[1])**2)
 
 cap = cv2.VideoCapture(0)
 
@@ -81,7 +86,7 @@ while True:
 
     if len(faces) == 0:
         cv2.putText(frame, "PAY ATTENTION!", (10, 30), font, 0.7, (0, 0, 255), 2)
-        
+
     for face in faces:
         face_landmarks = predictor(gray, face)
         # Convert to numpy array
@@ -95,31 +100,43 @@ while True:
         # average out the EAR of each eye
         EAR = (leftEye_EAR+rightEye_EAR)/2.0
 
-
-        
-        
         # Display isolated eyes
         # cv2.imshow("Left Eye", eye)
         # cv2.imshow("BW Left Eye", threshold_eye)
+
+
+        # Determining whether or not someone is looking at the side (distracted)
+        # the distance between a person's eye and face edge on an image decreases when they turn
+        leftFaceEdge = (face_landmarks[0][0], face_landmarks[0][1])
+        leftEyeEdge = (face_landmarks[36][0], face_landmarks[36][1])
+        leftDist = getDist(leftFaceEdge, leftEyeEdge)
+        rightFaceEdge = (face_landmarks[16][0], face_landmarks[16][1])
+        rightEyeEdge = (face_landmarks[45][0], face_landmarks[45][1])
+        rightDist = getDist(rightFaceEdge, rightEyeEdge)
+
+        if leftDist < SIDE_THRESH or rightDist < SIDE_THRESH:
+            cv2.putText(frame, "PAY ATTENTION!", (10, 30), font, 0.7, (0, 0, 255), 2)
+        cv2.putText(frame, str(round(leftDist, 2)), (50, 400), font, 2, (0, 255, 0), 3)
+        cv2.putText(frame, str(round(rightDist, 2)), (500, 400), font, 2, (0, 0, 255), 3)
 
 
         # Gaze detection
         left_gaze_ratio = getGazeRatio(list(range(36,42)), face_landmarks)
         right_gaze_ratio = getGazeRatio(list(range(42,48)), face_landmarks)
         gaze_ratio = (left_gaze_ratio+right_gaze_ratio)/2
-        cv2.putText(frame, str(gaze_ratio), (50, 400), font, 2, (0, 0, 255), 3)
-        if gaze_ratio <= 0.40:
+        # cv2.putText(frame, str(gaze_ratio), (50, 400), font, 2, (0, 0, 255), 3)
+        if gaze_ratio <= 0.55:
             cv2.putText(frame, "RIGHT", (50, 100), font, 2, (0, 0, 255), 3)
-        elif 0.40 < gaze_ratio < 1.8:
+        elif 0.55 < gaze_ratio < 1.8:
             cv2.putText(frame, "CENTER", (50, 100), font, 2, (0, 0, 255), 3)
         else:
             cv2.putText(frame, "LEFT", (50, 100), font, 2, (0, 0, 255), 3)
 
         # Outline the eyes
-        leftEyeHull = cv2.convexHull(leftEye)
-        rightEyeHull = cv2.convexHull(rightEye)
-        cv2.drawContours(frame, [leftEyeHull], -1, (0,255,0), 1)
-        cv2.drawContours(frame, [rightEyeHull], -1, (0,255,0), 1)
+        # leftEyeHull = cv2.convexHull(leftEye)
+        # rightEyeHull = cv2.convexHull(rightEye)
+        # cv2.drawContours(frame, [leftEyeHull], -1, (0,255,0), 1)
+        # cv2.drawContours(frame, [rightEyeHull], -1, (0,255,0), 1)
         # 
 
         # Count how many frames a person's eyes have been closed for
@@ -132,10 +149,10 @@ while True:
             COUNTER = 0
         
 
-        # for n in range(36, 48):
-        #     x = face_landmarks.part(n).x
-        #     y = face_landmarks.part(n).y
-        #     cv2.circle(frame, (x,y), 1, (0, 255, 255), 1)
+        for n in range(0, 68):
+            x = face_landmarks[n][0]
+            y = face_landmarks[n][1]
+            cv2.circle(frame, (x,y), 1, (0, 255, 255), 1)
     
     cv2.imshow("Face", frame)
 
