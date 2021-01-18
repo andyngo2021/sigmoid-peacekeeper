@@ -78,6 +78,10 @@ while True:
     _, frame = cap.read()
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faces = detector(gray)
+
+    if len(faces) == 0:
+        cv2.putText(frame, "PAY ATTENTION!", (10, 30), font, 0.7, (0, 0, 255), 2)
+        
     for face in faces:
         face_landmarks = predictor(gray, face)
         # Convert to numpy array
