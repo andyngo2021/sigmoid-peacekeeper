@@ -53,5 +53,5 @@ I intend to keep working on this project even after Sigmoid Hacks to make it as 
 work on one
 - Maybe a phone app might be better instead so no one has to buy anything to get this to work
 - Yawning detection
-- Analysis of the movement of the car itself to determine if the driver is incapable of driving in a straight lien
+- Analysis of the movement of the car itself to determine if the driver is incapable of driving in a straight line
 
