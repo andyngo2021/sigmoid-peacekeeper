@@ -4,7 +4,11 @@ from functions import getEyeAspectRatio, getDist
 from imutils import face_utils
 import numpy as np 
 import imutils
+from threading import Thread
+from playsound import playsound
 
+def alert():
+    playsound("beep.mp3")
 
 # CONSTANTS
 CONSTANTS = []
@@ -79,6 +83,7 @@ def getGazeRatio(eye_points, face_landmarks):
 def displayWarning():
     cv2.putText(frame, "PAY ATTENTION!", (50, 50), font, 2, (0, 0, 255), 2)
 
+
 cap = cv2.VideoCapture(0)
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
@@ -121,6 +126,9 @@ while True:
 
         if leftDist < SIDE_THRESH or rightDist < SIDE_THRESH:
             displayWarning()
+            t = Thread(target=alert)
+            t.daemon = True
+            t.start()
         # cv2.putText(frame, str(round(leftDist, 2)), (50, 400), font, 2, (0, 255, 0), 3)
         # cv2.putText(frame, str(round(rightDist, 2)), (500, 400), font, 2, (0, 0, 255), 3)
 
@@ -150,6 +158,9 @@ while True:
         
             if COUNTER >= BLINK_THRESH:
                 displayWarning()
+                t = Thread(target=alert)
+                t.daemon = True
+                t.start()
         else:
             COUNTER = 0
         
